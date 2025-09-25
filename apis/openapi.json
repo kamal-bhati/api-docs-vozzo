@@ -1,0 +1,837 @@
+
+
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Campaign API",
+    "description": "API for managing campaigns and scheduled calls",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@vozzo.ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://backend.dev.vozzo.ai",
+      "description": "Development server"
+    }
+   
+  ],
+  "paths": {
+    "/health/": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "description": "Basic health check endpoint to verify API status",
+        "operationId": "health_check_health__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2024-01-15T10:30:00Z"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.0.0"
+                    }
+                  },
+                  "required": ["status", "timestamp"],
+                  "title": "HealthCheckResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/campaign": {
+      "post": {
+        "tags": [
+          "campaigns"
+        ],
+        "summary": "Create Campaign",
+        "description": "Create a new campaign with specified configuration and data",
+        "operationId": "create_campaign_v1alpha_campaign_post",
+       "security": [
+  { "bearerAuth": [] }
+],
+
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCampaignRequest"
+              },
+              "examples": {
+                "basicCampaign": {
+                  "summary": "Basic Campaign Example",
+                  "value": {
+                    "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
+                    "campaign_config": {
+                      "campaign_name": "Summer Promotion 2024",
+                      "retry_options": { "max_attempts": 3, "delay_minutes": 60 },
+                      "campaign_start_date": "2024-06-01T09:00:00Z",
+                      "campaign_end_date": "2024-08-31T18:00:00Z",
+                      "preferred_timeslot": "WEEKDAY_AFTERNOON"
+                    },
+                    "campaign_data": [
+                      {
+                        "to_phone_number": "+1234567890",
+                        "agent_language": "en",
+                        "metadata": "{\"customer_name\": \"John Doe\", \"loan_amount\": 5000, \"product\": \"personal_loan\"}"
+                      }
+                    ]
+                  }
+                },
+                "bulkCampaign": {
+                  "summary": "Bulk Campaign Example",
+                  "value": {
+                    "agent_uuid": "660e8400-e29b-41d4-a716-446655440000",
+                    "campaign_config": {
+                      "campaign_name": "Customer Follow-up",
+                      "preferred_timeslot": "ANYDAY"
+                    },
+                    "campaign_data": [
+                      {
+                        "to_phone_number": "+1987654321",
+                        "agent_language": "es",
+                        "metadata": "{\"customer_name\": \"Maria Garcia\", \"segment\": \"premium\"}"
+                      },
+                      {
+                        "to_phone_number": "+1122334455",
+                        "agent_language": "en",
+                        "metadata": "{\"customer_name\": \"Robert Smith\", \"segment\": \"standard\"}"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCampaignResponse"
+                },
+                "examples": {
+                  "successResponse": {
+                    "summary": "Successful Campaign Creation",
+                    "value": {
+                      "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "records": 150,
+                      "org_id": 12345
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/campaigns": {
+      "get": {
+        "tags": [
+          "campaigns"
+        ],
+        "summary": "Get Campaigns",
+        "description": "Retrieve a list of all campaigns for the authenticated user",
+        "operationId": "get_campaigns_v1alpha_campaigns_get",
+          "security": [
+  { "bearerAuth": [] }
+],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of campaigns to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Number of campaigns to skip"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/CampaignState"
+            },
+            "description": "Filter campaigns by state"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "campaigns": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CampaignListItem"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of campaigns"
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Number of campaigns returned"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "description": "Number of campaigns skipped"
+                    }
+                  },
+                  "required": ["campaigns", "total"],
+                  "title": "CampaignListResponse"
+                },
+                "examples": {
+                  "successResponse": {
+                    "summary": "Campaign List",
+                    "value": {
+                      "campaigns": [
+                        {
+                          "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
+                          "campaign_name": "Summer Promotion",
+                          "campaign_state": "RUNNING",
+                          "agent_id": "660e8400-e29b-41d4-a716-446655440000"
+                        }
+                      ],
+                      "total": 1,
+                      "limit": 20,
+                      "offset": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/campaign/{campaign_id}": {
+      "get": {
+        "tags": [
+          "campaigns"
+        ],
+        "summary": "Get Campaign",
+        "description": "Retrieve detailed information about a specific campaign",
+        "operationId": "get_campaign_v1alpha_campaign__campaign_id__get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "description": "Unique identifier of the campaign"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignDetailResponse"
+                },
+                "examples": {
+                  "successResponse": {
+                    "summary": "Campaign Details",
+                    "value": {
+                      "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "campaign_name": "Summer Promotion 2024",
+                      "campaign_state": "RUNNING",
+                      "agent_id": "660e8400-e29b-41d4-a716-446655440000",
+                      "org_id": 12345,
+                      "campaign_start_date": "2024-06-01T09:00:00Z",
+                      "campaign_end_date": "2024-08-31T18:00:00Z",
+                      "campaign_data": {
+                        "total_records": 150,
+                        "processed_records": 75
+                      },
+                      "campaign_config": {
+                        "preferred_timeslot": "WEEKDAY_AFTERNOON",
+                        "retry_options": { "max_attempts": 3 }
+                      },
+                      "campaign_report_summary": {
+                        "successful_calls": 45,
+                        "failed_calls": 5,
+                        "pending_calls": 25
+                      },
+                      "campaign_schema_version": "1.0.0",
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/campaign/{campaign_id}/items": {
+      "get": {
+        "tags": [
+          "scheduled-calls"
+        ],
+        "summary": "Get Scheduled Calls",
+        "description": "Retrieve all scheduled calls for a specific campaign",
+        "operationId": "get_scheduled_calls_v1alpha_campaign__campaign_id__items_get",
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "description": "Unique identifier of the campaign"
+          },
+          {
+            "name": "call_state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"]
+            },
+            "description": "Filter calls by state"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "description": "Number of calls to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Number of calls to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scheduled_calls": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScheduledCallListItem"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["scheduled_calls", "total"],
+                  "title": "ScheduledCallsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/campaign/{campaign_id}/item/{scheduled_item_id}": {
+      "get": {
+        "tags": [
+          "scheduled-calls"
+        ],
+        "summary": "Get Scheduled Call",
+        "description": "Retrieve detailed information about a specific scheduled call",
+        "operationId": "get_scheduled_call_v1alpha_campaign__campaign_id__item__scheduled_item_id__get",
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "description": "Unique identifier of the campaign"
+          },
+          {
+            "name": "scheduled_item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "770e8400-e29b-41d4-a716-446655440000"
+            },
+            "description": "Unique identifier of the scheduled call"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledCallDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/auth/api-keys": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Create Api Key",
+        "description": "Generate a new API key for programmatic access",
+        "operationId": "create_api_key_v1alpha_auth_api_keys_post",
+        "security": [
+          { "bearerAuth": [] }  
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              },
+              "examples": {
+                "standardKey": {
+                  "summary": "Standard API Key",
+                  "value": {
+                    "scopes": ["campaign:read", "campaign:write"],
+                    "expiry_date": "2024-12-31"
+                  }
+                },
+                "readOnlyKey": {
+                  "summary": "Read-only API Key",
+                  "value": {
+                    "scopes": ["campaign:read"],
+                    "expiry_date": "2024-06-30"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "API Key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "api_key": {
+                      "type": "string",
+                      "description": "The generated API key"
+                    },
+                    "key_id": {
+                      "type": "string",
+                      "description": "Unique identifier for the API key"
+                    },
+                    "expiry_date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["api_key", "key_id", "scopes"],
+                  "title": "CreateApiKeyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/auth/me": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Whoami",
+        "description": "Get current authenticated user information",
+        "operationId": "whoami_v1alpha_auth_me_get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "organization_id": {
+                      "type": "integer"
+                    },
+                    "organization_name": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["user_id", "email", "organization_id"],
+                  "title": "UserInfoResponse"
+                },
+                "examples": {
+                  "userInfo": {
+                    "summary": "User Information",
+                    "value": {
+                      "user_id": "880e8400-e29b-41d4-a716-446655440000",
+                      "email": "user@example.com",
+                      "name": "John Doe",
+                      "organization_id": 12345,
+                      "organization_name": "Example Corp",
+                      "permissions": ["campaign:read", "campaign:write"],
+                      "created_at": "2024-01-01T00:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+ "components": {
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+  "schemas": {
+    "CreateCampaignRequest": {
+      "type": "object",
+      "properties": {
+        "agent_uuid": { "type": "string", "format": "uuid" },
+        "campaign_config": { "type": "object" },
+        "campaign_data": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "required": ["agent_uuid", "campaign_config", "campaign_data"]
+    },
+    "CreateCampaignResponse": {
+      "type": "object",
+      "properties": {
+        "campaign_id": { "type": "string", "format": "uuid" },
+        "records": { "type": "integer" },
+        "org_id": { "type": "integer" }
+      },
+      "required": ["campaign_id"]
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "detail": { "type": "string" }
+      },
+      "required": ["detail"]
+    },
+    "HTTPValidationError": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "CampaignState": {
+      "type": "string",
+      "enum": ["DRAFT", "RUNNING", "PAUSED", "COMPLETED"]
+    },
+    "CampaignListItem": {
+      "type": "object",
+      "properties": {
+        "campaign_id": { "type": "string", "format": "uuid" },
+        "campaign_name": { "type": "string" },
+        "campaign_state": { "$ref": "#/components/schemas/CampaignState" },
+        "agent_id": { "type": "string", "format": "uuid" }
+      }
+    },
+    "CampaignDetailResponse": {
+      "type": "object",
+      "properties": {
+        "campaign_id": { "type": "string", "format": "uuid" },
+        "campaign_name": { "type": "string" },
+        "campaign_state": { "$ref": "#/components/schemas/CampaignState" }
+      }
+    },
+    "ScheduledCallListItem": {
+      "type": "object",
+      "properties": {
+        "scheduled_item_id": { "type": "string", "format": "uuid" },
+        "call_state": { "type": "string" }
+      }
+    },
+    "ScheduledCallDetailResponse": {
+      "type": "object",
+      "properties": {
+        "scheduled_item_id": { "type": "string", "format": "uuid" },
+        "call_state": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CreateApiKeyRequest": {
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "expiry_date": { "type": "string", "format": "date" }
+      },
+      "required": ["scopes"]
+    }
+  }
+}
+,
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "campaigns",
+      "description": "Campaign management endpoints"
+    },
+    {
+      "name": "scheduled-calls",
+      "description": "Scheduled call management endpoints"
+    },
+    {
+      "name": "authentication",
+      "description": "Authentication and authorization endpoints"
+    }
+  ]
+}

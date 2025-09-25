@@ -1,15 +1,34 @@
 ---
-title: Welcome to Zudoku
+title: Introduction
+slug: /introduction
 ---
 
-Thanks for choosing to use Zudoku to power your API documentation!
+# Vozzo Campaign API Documentation
 
-## Edit this page
+Welcome to the Vozzo Campaign API documentation. This API allows you to programmatically manage automated calling campaigns, schedule calls, and monitor campaign performance.
 
-To edit this page, open the `pages/introduction.mdx` file.
+## Overview
 
-## Configuration
+The Vozzo Campaign API provides a robust platform for managing outbound calling campaigns with intelligent scheduling, retry logic, and real-time monitoring capabilities. With our API, you can automate customer outreach, appointment reminders, notifications, and more.
 
-You can find the full configuration for your Zudoku site in the `zudoku.config.jsx` file.
+### Key Features
 
-For further information on how to customize your site, check out the [Zudoku documentation](https://zudoku.dev/docs).
+- **Campaign Management**: Create, manage, and monitor calling campaigns
+- **Intelligent Scheduling**: Schedule calls based on preferred timeslots
+- **Retry Logic**: Configure automatic retries for failed calls
+- **Real-time Monitoring**: Track campaign progress and individual call status
+- **Security**: OAuth2 authentication with OpenID Connect
+
+## Authentication
+
+All API endpoints require authentication using OAuth2 with OpenID Connect. 
+
+### Getting Started
+
+1. **Obtain Credentials**: Contact Vozzo to get your `client_id` and access to our authentication server
+2. **Authenticate**: Use the OAuth2 authorization code flow to obtain access tokens
+3. **Make Requests**: Include the access token in the `Authorization` header as a Bearer token
+
+Example authentication header:
+```http
+Authorization: Bearer your-access-token-here
