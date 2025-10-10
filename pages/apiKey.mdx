@@ -1,0 +1,42 @@
+# 🔑 API Key
+
+## Get Your API Key
+
+To use the Vozzo API, you need an API key. Click the button below to get redirected to the Vozzo platform where you can create and manage your API keys.
+
+<div style={{textAlign: 'center', margin: '20px 0'}}>
+  <a 
+    href="https://platform.dev.vozzo.ai/my-agents" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    style={{
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      padding: '12px 24px',
+      borderRadius: '8px',
+      fontWeight: '600',
+      textDecoration: 'none',
+      display: 'inline-block',
+      transition: 'all 0.3s ease'
+    }}
+    onMouseOver="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
+    onMouseOut="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+  >
+    Get API Key on Vozzo Platform
+  </a>
+</div>
+
+### Steps to Get API Key:
+1. Click the button above or visit [Vozzo Platform](https://platform.dev.vozzo.ai/my-agents)
+2. Log in to your account
+3. Navigate to your agent settings
+4. Generate a new API key
+5. Copy and securely store your API key
+
+> **Important**: API keys provide full access to your account. Keep them secure and never share in public repositories.
+
+### Using Your API Key
+Once you have your API key, include it in the `Authorization` header of your requests:
+
+```http
+Authorization: Token YOUR_SECRET_API_KEY

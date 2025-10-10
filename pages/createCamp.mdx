@@ -1,0 +1,375 @@
+---
+title: 'Create Campaign'
+description: 'Learn how to create a campaign using the Vozzo Campaign API.'
+sidebar_label: 'Create Campaign'
+---
+
+
+A **campaign** is a structured set of tasks that an agent executes to reach a target audience, typically via calls or messages.  
+Creating a campaign allows you to **schedule, configure, and manage outreach** to multiple recipients efficiently.
+
+---
+
+## 🔹 Prerequisites
+
+Before creating a campaign, ensure you have:
+
+- **API Key**: Your Vozzo API token for authentication.
+- **Agent UUID**: Unique identifier for the AI agent that will handle the campaign.
+- **Recipient Data**: Phone numbers and metadata for your target audience.
+
+---
+
+## 🔹 How to Get Your Agent UUID
+
+**Method 1: From Agent Dashboard**
+1. Log into your Vozzo dashboard.
+2. Navigate to the Agents section.
+3. Click on the agent you want to use.
+4. Copy the Agent ID or UUID from the agent details.
+
+**Method 2: From API Response**
+If you've created an agent via API, the `agent_uuid` is returned in the creation response:
+
+```json
+{
+  "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "My Sales Agent",
+  "status": "active"
+}
+```
+
+**Method 3: List All Agents**
+Use the `GET /v1alpha/agents` endpoint to list all your agents:
+
+```http
+GET https://backend.vozzo.ai/v1alpha/agents
+Authorization: token <VOZZO_API_TOKEN>
+```
+
+**Response:**
+```json
+{
+  "agents": [
+    {
+      "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Sales Agent",
+      "description": "Handles sales calls",
+      "status": "active"
+    },
+    {
+      "agent_uuid": "660e8400-e29b-41d4-a716-446655440001",
+      "name": "Support Agent",
+      "description": "Handles customer support",
+      "status": "active"
+    }
+  ]
+}
+```
+
+---
+
+## 🔹 What is a Campaign?
+
+A campaign consists of:
+
+- **Campaign Configurations**: Settings such as campaign name, schedule, preferred time slots, and retry policies.
+- **Campaign Data**: List of recipients with their contact details and custom metadata.
+- **Agent Assignment**: Specifies which agent will handle the campaign.
+
+When a campaign is created, it is assigned a unique `campaign_id` that can be used to retrieve, update, or track the campaign status.
+
+---
+
+## 🔹 Campaign Configuration Details
+
+### Campaign Name
+- **Purpose**: Identify and organize your campaigns.
+- **Best Practices**: Use descriptive names like "Q3 Sales Outreach" or "Customer Renewal Reminders".
+- **Example**: `"Summer Promotion 2024"`
+
+### Retry Options
+Configure how the system handles failed call attempts:
+
+```json
+"retry_options": {
+  "max_attempts": 3,
+  "delay_minutes": 60
+}
+```
+- **max_attempts**: Range 1-5 attempts. Recommended: 2-3 for balance between reach and efficiency.
+- **delay_minutes**: Range 15-1440 minutes (24 hours). Recommended: 60-120 minutes for optimal retry timing.
+
+### Scheduling Parameters
+- **campaign_start_date**: Format ISO 8601 (YYYY-MM-DDTHH:MM:SSZ), use UTC timezone.  
+  Example: `"2024-06-01T09:00:00Z"`
+- **campaign_end_date**: Campaigns automatically stop after this date.  
+  Best Practice: Set end date 1-2 weeks after last expected interaction.
+
+### Preferred Timeslot Options
+
+| Timeslot Value        | Description                | Hours (Local Time)      |
+|---------------------- |---------------------------|-------------------------|
+| WEEKDAY_MORNING      | Monday-Friday morning      | 9:00 AM - 12:00 PM      |
+| WEEKDAY_AFTERNOON    | Monday-Friday afternoon    | 12:00 PM - 5:00 PM      |
+| WEEKDAY_EVENING      | Monday-Friday evening      | 5:00 PM - 9:00 PM       |
+| WEEKEND_MORNING      | Saturday-Sunday morning    | 9:00 AM - 12:00 PM      |
+| WEEKEND_AFTERNOON    | Saturday-Sunday afternoon  | 12:00 PM - 6:00 PM      |
+| ANYTIME              | Any reasonable time        | 9:00 AM - 9:00 PM       |
+
+Best Practice: Choose timeslots based on your audience's preferences and local regulations.
+
+---
+
+## 🔹 Campaign Data Structure
+
+### Phone Number Formatting
+- **Required Format**: E.164 international format
+- **Country Code**: Always include country code (+1 for US, +44 for UK, etc.)
+- **Examples**:
+  - US: `+14155552671`
+  - UK: `+442072193000`
+  - India: `+912212345678`
+
+### Agent Language Codes
+
+| Language | Code | Supported Features |
+|----------|------|-------------------|
+| English  | en   | Full support      |
+| Spanish  | es   | Full support      |
+| French   | fr   | Basic support     |
+| German   | de   | Basic support     |
+
+More languages coming soon.
+
+### Metadata Structure
+The `metadata` field allows you to pass custom data to personalize conversations:
+
+```json
+"metadata": "{\"customer_name\": \"John Doe\", \"loan_amount\": 5000, \"product\": \"personal_loan\"}"
+```
+- Must be valid JSON string
+- Use double quotes for both keys and values
+- Escape special characters properly
+
+**Common Use Cases:**
+
+```json
+// Sales Campaign
+"metadata": "{\"customer_name\": \"Alice Smith\", \"company\": \"Tech Corp\", \"interest_product\": \"premium_plan\"}"
+
+// Support Follow-up
+"metadata": "{\"ticket_id\": \"TSK-12345\", \"issue_type\": \"billing\", \"priority\": \"high\"}"
+
+// Appointment Reminder
+"metadata": "{\"patient_name\": \"Bob Johnson\", \"appointment_date\": \"2024-06-15\", \"doctor\": \"Dr. Davis\"}"
+```
+
+---
+
+## 🔹 How to Create a Campaign
+
+Use the **POST `/v1alpha/campaign`** endpoint to create a new campaign.
+
+- **Method**: `POST`
+- **URL**: `/v1alpha/campaign`
+- **Base URL**: `https://backend.vozzo.ai`
+- **Auth Required**: ✅ Yes (API Key in `Authorization` header, format: `token <VOZZO_API_TOKEN>`)
+
+Include your API Key in the request header:
+
+```http
+Authorization: token <VOZZO_API_TOKEN>
+Content-Type: application/json
+```
+
+### Request Body Example
+
+```json
+{
+  "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "campaign_config": {
+    "campaign_name": "Summer Promotion 2024",
+    "retry_options": {
+      "max_attempts": 3,
+      "delay_minutes": 60
+    },
+    "campaign_start_date": "2024-06-01T09:00:00Z",
+    "campaign_end_date": "2024-08-31T18:00:00Z",
+    "preferred_timeslot": "WEEKDAY_AFTERNOON"
+  },
+  "campaign_data": [
+    {
+      "to_phone_number": "+1234567890",
+      "agent_language": "en",
+      "metadata": "{\"customer_name\": \"John Doe\", \"loan_amount\": 5000, \"product\": \"personal_loan\"}"
+    }
+  ]
+}
+```
+
+### Complete Example with Multiple Recipients
+
+```json
+{
+  "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "campaign_config": {
+    "campaign_name": "Q3 Customer Follow-up",
+    "retry_options": {
+      "max_attempts": 2,
+      "delay_minutes": 120
+    },
+    "campaign_start_date": "2024-07-01T09:00:00Z",
+    "campaign_end_date": "2024-09-30T18:00:00Z",
+    "preferred_timeslot": "WEEKDAY_AFTERNOON"
+  },
+  "campaign_data": [
+    {
+      "to_phone_number": "+14155551234",
+      "agent_language": "en",
+      "metadata": "{\"customer_name\": \"John Doe\", \"last_purchase\": \"2024-05-15\", \"product\": \"premium_subscription\"}"
+    },
+    {
+      "to_phone_number": "+442072193000",
+      "agent_language": "en",
+      "metadata": "{\"customer_name\": \"Sarah Wilson\", \"last_purchase\": \"2024-06-01\", \"product\": \"basic_plan\"}"
+    },
+    {
+      "to_phone_number": "+912212345678",
+      "agent_language": "en",
+      "metadata": "{\"customer_name\": \"Raj Patel\", \"last_purchase\": \"2024-04-20\", \"product\": \"enterprise_solution\"}"
+    }
+  ]
+}
+```
+
+---
+
+## 🔹 Request Parameters
+
+### agent_uuid (Required)
+- **Type**: `string` (UUID)
+- **Description**: Unique identifier of the AI agent that will handle this campaign.
+- **Example**: `"550e8400-e29b-41d4-a716-446655440000"`
+
+### campaign_config (Required)
+Configuration settings for the campaign behavior and scheduling.
+
+#### campaign_name (Required)
+- **Type**: `string`
+- **Description**: Descriptive name for identifying the campaign.
+- **Example**: `"Summer Promotion 2024"`
+
+#### retry_options (Optional)
+Settings for automatic retry attempts on failed calls.
+
+- **max_attempts**
+  - **Type**: `integer`
+  - **Range**: 1-5
+  - **Description**: Maximum number of call attempts per contact.
+  - **Default**: 3
+
+- **delay_minutes**
+  - **Type**: `integer`
+  - **Range**: 15-1440
+  - **Description**: Delay (in minutes) between retry attempts.
+
+#### campaign_start_date (Required)
+- **Type**: `string` (ISO 8601 datetime)
+- **Description**: Start date and time for the campaign.
+- **Example**: `"2024-06-01T09:00:00Z"`
+
+#### campaign_end_date (Required)
+- **Type**: `string` (ISO 8601 datetime)
+- **Description**: End date and time for the campaign.
+- **Example**: `"2024-08-31T18:00:00Z"`
+
+#### preferred_timeslot (Optional)
+- **Type**: `string`
+- **Description**: Preferred time slot for campaign execution.
+- **Example**: `"WEEKDAY_AFTERNOON"`
+
+### campaign_data (Required)
+List of recipients and their details.
+
+- **to_phone_number**
+  - **Type**: `string`
+  - **Description**: Recipient's phone number.
+  - **Example**: `"+1234567890"`
+
+- **agent_language**
+  - **Type**: `string`
+  - **Description**: Language code for the agent.
+  - **Example**: `"en"`
+
+- **metadata**
+  - **Type**: `string` (JSON)
+  - **Description**: Custom metadata for the recipient.
+  - **Example**: `"{\"customer_name\": \"John Doe\", \"loan_amount\": 5000, \"product\": \"personal_loan\"}"`
+
+---
+
+## 🔹 Response Handling
+
+### Success Response
+
+```json
+{
+  "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
+  "records": 3,
+  "org_id": "your_org_id",
+  "status": "scheduled",
+  "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "campaign_name": "Q3 Customer Follow-up",
+  "created_at": "2024-06-15T14:30:00Z"
+}
+```
+
+### Error Responses
+
+**400 Bad Request - Validation errors:**
+```json
+{
+  "error": "Invalid phone number format",
+  "details": "Phone number must be in E.164 format"
+}
+```
+
+**401 Unauthorized - Authentication issues:**
+```json
+{
+  "error": "Invalid authentication token",
+  "message": "Please check your API key"
+}
+```
+
+**404 Not Found - Agent not found:**
+```json
+{
+  "error": "Agent not found",
+  "details": "No agent found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+---
+
+## 🔹 Best Practices
+
+1. **Test with Small Batches**: Start with 5-10 recipients to verify your configuration before scaling up.
+2. **Validate Phone Numbers**: Ensure all numbers are in correct E.164 format to avoid delivery failures.
+3. **Monitor Campaign Progress**: Use the `campaign_id` to track progress through the GET campaign endpoint.
+4. **Respect Local Regulations**: Check local calling hours regulations, include opt-out mechanisms, honor do-not-call lists.
+5. **Optimize Metadata**: Pass relevant context to help the agent have more natural, personalized conversations.
+
+---
+
+## 🔹 Next Steps
+
+After creating a campaign, you can:
+
+- **Monitor Progress**: Use `GET /v1alpha/campaign/{campaign_id}` to check status.
+- **Update Campaign**: Use `PATCH /v1alpha/campaign/{campaign_id}` to modify settings.
+- **Add Recipients**: Use additional endpoints to expand your campaign reach.
+- **Analyze Results**: Review call analytics and conversation transcripts.
+
+---

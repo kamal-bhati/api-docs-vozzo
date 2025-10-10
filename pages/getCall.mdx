@@ -1,0 +1,128 @@
+---
+title: 'Get Calls & Call Details'
+description: 'Retrieve all calls (items) in a campaign or details for a specific call using Vozzo Campaign API.'
+sidebar_label: 'Get Calls'
+---
+
+This page covers two endpoints for retrieving call (item) information within a campaign:
+
+- **List Calls in a Campaign:** `GET /v1alpha/campaign/{campaign_id}/items`
+- **Get Call Details:** `GET /v1alpha/campaign/{campaign_id}/item/{item_id}`
+
+---
+
+## 🔹 List All Calls in a Campaign
+
+- **Method:** `GET`
+- **URL:** `/v1alpha/campaign/{campaign_id}/items`
+- **Authentication:** API Key in `Authorization` header (`token <VOZZO_API_TOKEN>`)
+
+### Request
+
+```http
+GET https://backend.vozzo.ai/v1alpha/campaign/{campaign_id}/items
+Authorization: token <VOZZO_API_TOKEN>
+Content-Type: application/json
+```
+
+#### Path Parameter
+
+| Parameter     | Type   | Required | Description                      |
+|---------------|--------|----------|----------------------------------|
+| campaign_id   | string | Yes      | Unique identifier for the campaign |
+
+### Success Response
+
+```json
+[
+  {
+    "item_id": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+    "to_phone_number": "+1234567890",
+    "agent_language": "en",
+    "metadata": "{\"customer_name\": \"John Doe\", \"loan_amount\": 5000}",
+    "call_status": "COMPLETED",
+    "call_started_at": "2024-06-01T09:05:00Z",
+    "call_ended_at": "2024-06-01T09:07:00Z",
+    "result": "SUCCESS"
+  }
+  // ...more items...
+]
+```
+
+---
+
+## 🔹 Get Call Details
+
+- **Method:** `GET`
+- **URL:** `/v1alpha/campaign/{campaign_id}/item/{item_id}`
+- **Authentication:** API Key in `Authorization` header (`token <VOZZO_API_TOKEN>`)
+
+### Request
+
+```http
+GET https://backend.vozzo.ai/v1alpha/campaign/{campaign_id}/item/{item_id}
+Authorization: token <VOZZO_API_TOKEN>
+Content-Type: application/json
+```
+
+#### Path Parameters
+
+| Parameter     | Type   | Required | Description                      |
+|---------------|--------|----------|----------------------------------|
+| campaign_id   | string | Yes      | Unique identifier for the campaign |
+| item_id       | string | Yes      | Unique identifier for the call/item |
+
+### Success Response
+
+```json
+{
+  "item_id": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+  "to_phone_number": "+1234567890",
+  "agent_language": "en",
+  "metadata": "{\"customer_name\": \"John Doe\", \"loan_amount\": 5000}",
+  "call_status": "COMPLETED",
+  "call_started_at": "2024-06-01T09:05:00Z",
+  "call_ended_at": "2024-06-01T09:07:00Z",
+  "result": "SUCCESS",
+  "transcript": "Hello John Doe, this is your loan reminder call..."
+}
+```
+
+---
+
+## 🔹 Usage Examples
+
+### List All Calls in a Campaign
+
+```bash
+curl -X GET "https://backend.vozzo.ai/v1alpha/campaign/550e8400-e29b-41d4-a716-446655440000/items" \
+     -H "Authorization: token <VOZZO_API_TOKEN>" \
+     -H "Content-Type: application/json"
+```
+
+### Get Specific Call Details
+
+```bash
+curl -X GET "https://backend.vozzo.ai/v1alpha/campaign/550e8400-e29b-41d4-a716-446655440000/item/a1b2c3d4-e5f6-7890-abcd-1234567890ab" \
+     -H "Authorization: token <VOZZO_API_TOKEN>" \
+     -H "Content-Type: application/json"
+```
+
+---
+
+## 🔹 Error Handling
+
+- **401 Unauthorized:** Invalid or missing API Key.
+- **400 Bad Request:** Invalid query or path parameters.
+- **404 Not Found:** Call/item not found.
+- **500 Internal Server Error:** Unexpected error.
+
+---
+
+## 🔹 Next Steps
+
+- **Get Campaigns:** Use `GET /v1alpha/campaigns` to list all campaigns.
+- **Get Campaign Details:** Use `GET /v1alpha/campaign/{campaign_id}` for campaign info.
+- **Create Campaign:** Use `POST /v1alpha/campaign` to create a new campaign.
+
+---

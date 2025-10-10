@@ -1,10 +1,8 @@
-
-
 {
   "openapi": "3.1.0",
   "info": {
     "title": "Campaign API",
-    "description": "API for managing campaigns and scheduled calls",
+    "description": "API for managing campaigns and scheduled calls using Vozzo's AI voice agents",
     "version": "1.0.0",
     "contact": {
       "name": "API Support",
@@ -13,44 +11,234 @@
   },
   "servers": [
     {
-      "url": "https://backend.dev.vozzo.ai",
+      "url": "https://backend.vozzo.ai",
       "description": "Development server"
     }
-   
   ],
   "paths": {
-    "/health/": {
-      "get": {
+    "/v1alpha/auth/api-keys": {
+      "post": {
         "tags": [
-          "health"
+          "authentication"
         ],
-        "summary": "Health Check",
-        "description": "Basic health check endpoint to verify API status",
-        "operationId": "health_check_health__get",
+        "summary": "Create API Key",
+        "description": "Generate a new API key for programmatic access to the Vozzo API. API keys provide authentication for automated systems and integrations.",
+        "operationId": "create_api_key_v1alpha_auth_api_keys_post",
+        "security": [
+          { "bearerAuth": [] }  
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              },
+              "examples": {
+                "standardKey": {
+                  "summary": "Standard API Key",
+                  "description": "API key with full campaign read and write permissions",
+                  "value": {
+                    "scopes": ["campaign:read", "campaign:write"],
+                    "expiry_date": "2024-12-31",
+                    "description": "Production integration key"
+                  }
+                },
+                "readOnlyKey": {
+                  "summary": "Read-only API Key",
+                  "description": "Restricted key for monitoring purposes only",
+                  "value": {
+                    "scopes": ["campaign:read"],
+                    "expiry_date": "2024-06-30",
+                    "description": "Monitoring dashboard key"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "API Key created successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
+                    "api_key": {
                       "type": "string",
-                      "example": "healthy"
+                      "description": "The generated API key - store this securely as it will not be shown again"
                     },
-                    "timestamp": {
+                    "key_id": {
+                      "type": "string",
+                      "description": "Unique identifier for the API key, used for management purposes"
+                    },
+                    "expiry_date": {
+                      "type": "string",
+                      "format": "date",
+                      "description": "Date when the API key will automatically expire"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Permission scopes granted to this API key"
+                    },
+                    "created_at": {
                       "type": "string",
                       "format": "date-time",
-                      "example": "2024-01-15T10:30:00Z"
+                      "description": "Timestamp when the API key was created"
                     },
-                    "version": {
+                    "description": {
                       "type": "string",
-                      "example": "1.0.0"
+                      "description": "Human-readable description of the API key's purpose"
                     }
                   },
-                  "required": ["status", "timestamp"],
-                  "title": "HealthCheckResponse"
+                  "required": ["api_key", "key_id", "scopes"],
+                  "title": "CreateApiKeyResponse"
+                },
+                "examples": {
+                  "successResponse": {
+                    "summary": "API Key Created",
+                    "value": {
+                      "api_key": "vozzo_sk_live_abc123xyz456",
+                      "key_id": "key_12345",
+                      "expiry_date": "2024-12-31",
+                      "scopes": ["campaign:read", "campaign:write"],
+                      "created_at": "2024-01-15T10:30:00Z",
+                      "description": "Production integration key"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error - Invalid scopes or expiry date",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1alpha/auth/me": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Get Current User Information",
+        "description": "Retrieve information about the currently authenticated user including organization details and permissions. Useful for verifying authentication and access rights.",
+        "operationId": "whoami_v1alpha_auth_me_get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response - Returns current user information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Unique identifier of the authenticated user"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "description": "User's email address used for authentication"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Full name of the user"
+                    },
+                    "organization_id": {
+                      "type": "integer",
+                      "description": "Unique identifier of the user's organization"
+                    },
+                    "organization_name": {
+                      "type": "string",
+                      "description": "Name of the user's organization"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of permissions granted to the user"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp when the user account was created"
+                    },
+                    "last_login": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of the user's last successful login"
+                    }
+                  },
+                  "required": ["user_id", "email", "organization_id"],
+                  "title": "UserInfoResponse"
+                },
+                "examples": {
+                  "userInfo": {
+                    "summary": "User Information",
+                    "value": {
+                      "user_id": "880e8400-e29b-41d4-a716-446655440000",
+                      "email": "user@example.com",
+                      "name": "John Doe",
+                      "organization_id": 12345,
+                      "organization_name": "Example Corp",
+                      "permissions": ["campaign:read", "campaign:write", "billing:read"],
+                      "created_at": "2024-01-01T00:00:00Z",
+                      "last_login": "2024-06-15T09:30:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or expired authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -64,12 +252,23 @@
           "campaigns"
         ],
         "summary": "Create Campaign",
-        "description": "Create a new campaign with specified configuration and data",
+        "description": "Create a new campaign with specified configuration and data. A campaign schedules automated voice calls using Vozzo's AI agents to multiple recipients with personalized messaging.",
         "operationId": "create_campaign_v1alpha_campaign_post",
-       "security": [
-  { "bearerAuth": [] }
-],
-
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -79,11 +278,15 @@
               "examples": {
                 "basicCampaign": {
                   "summary": "Basic Campaign Example",
+                  "description": "Example of a campaign with retry options and specific date range",
                   "value": {
                     "agent_uuid": "550e8400-e29b-41d4-a716-446655440000",
                     "campaign_config": {
                       "campaign_name": "Summer Promotion 2024",
-                      "retry_options": { "max_attempts": 3, "delay_minutes": 60 },
+                      "retry_options": { 
+                        "max_attempts": 3, 
+                        "delay_minutes": 60 
+                      },
                       "campaign_start_date": "2024-06-01T09:00:00Z",
                       "campaign_end_date": "2024-08-31T18:00:00Z",
                       "preferred_timeslot": "WEEKDAY_AFTERNOON"
@@ -99,6 +302,7 @@
                 },
                 "bulkCampaign": {
                   "summary": "Bulk Campaign Example",
+                  "description": "Example of a campaign with multiple recipients and basic configuration",
                   "value": {
                     "agent_uuid": "660e8400-e29b-41d4-a716-446655440000",
                     "campaign_config": {
@@ -193,13 +397,23 @@
         "tags": [
           "campaigns"
         ],
-        "summary": "Get Campaigns",
-        "description": "Retrieve a list of all campaigns for the authenticated user",
+        "summary": "Get Campaigns List",
+        "description": "Retrieve a paginated list of all campaigns for the authenticated user. This endpoint provides a high-level overview of campaigns including their current state and basic information.",
         "operationId": "get_campaigns_v1alpha_campaigns_get",
-          "security": [
-  { "bearerAuth": [] }
-],
+        "security": [
+          { "bearerAuth": [] }
+        ],
         "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          },
           {
             "name": "limit",
             "in": "query",
@@ -210,7 +424,8 @@
               "maximum": 100,
               "default": 20
             },
-            "description": "Number of campaigns to return"
+            "description": "Number of campaigns to return per page. Use for pagination control.",
+            "example": 20
           },
           {
             "name": "offset",
@@ -221,7 +436,8 @@
               "minimum": 0,
               "default": 0
             },
-            "description": "Number of campaigns to skip"
+            "description": "Number of campaigns to skip for pagination. Use with limit to navigate through pages.",
+            "example": 0
           },
           {
             "name": "state",
@@ -230,12 +446,13 @@
             "schema": {
               "$ref": "#/components/schemas/CampaignState"
             },
-            "description": "Filter campaigns by state"
+            "description": "Filter campaigns by their current state. Useful for finding campaigns in specific lifecycle stages.",
+            "example": "RUNNING"
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successful Response - Returns paginated list of campaigns",
             "content": {
               "application/json": {
                 "schema": {
@@ -243,21 +460,22 @@
                   "properties": {
                     "campaigns": {
                       "type": "array",
+                      "description": "Array of campaign objects with basic information",
                       "items": {
                         "$ref": "#/components/schemas/CampaignListItem"
                       }
                     },
                     "total": {
                       "type": "integer",
-                      "description": "Total number of campaigns"
+                      "description": "Total number of campaigns available (before pagination)"
                     },
                     "limit": {
                       "type": "integer",
-                      "description": "Number of campaigns returned"
+                      "description": "The limit value used in the request"
                     },
                     "offset": {
                       "type": "integer",
-                      "description": "Number of campaigns skipped"
+                      "description": "The offset value used in the request"
                     }
                   },
                   "required": ["campaigns", "total"],
@@ -265,17 +483,41 @@
                 },
                 "examples": {
                   "successResponse": {
-                    "summary": "Campaign List",
+                    "summary": "Campaign List with Pagination",
+                    "description": "Example response showing paginated campaign list",
                     "value": {
                       "campaigns": [
                         {
                           "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
                           "campaign_name": "Summer Promotion",
                           "campaign_state": "RUNNING",
-                          "agent_id": "660e8400-e29b-41d4-a716-446655440000"
+                          "agent_id": "660e8400-e29b-41d4-a716-446655440000",
+                          "created_at": "2024-01-15T10:30:00Z",
+                          "total_records": 150,
+                          "processed_records": 75
                         }
                       ],
-                      "total": 1,
+                      "total": 5,
+                      "limit": 20,
+                      "offset": 0
+                    }
+                  },
+                  "filteredResponse": {
+                    "summary": "Filtered Campaign List",
+                    "description": "Example showing campaigns filtered by state",
+                    "value": {
+                      "campaigns": [
+                        {
+                          "campaign_id": "660e8400-e29b-41d4-a716-446655440001",
+                          "campaign_name": "Customer Follow-up",
+                          "campaign_state": "COMPLETED",
+                          "agent_id": "770e8400-e29b-41d4-a716-446655440000",
+                          "created_at": "2024-01-10T09:15:00Z",
+                          "total_records": 200,
+                          "processed_records": 200
+                        }
+                      ],
+                      "total": 2,
                       "limit": 20,
                       "offset": 0
                     }
@@ -285,11 +527,19 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
+            "description": "Unauthorized - Invalid or missing authentication token",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unauthorized": {
+                    "summary": "Authentication Failed",
+                    "value": {
+                      "detail": "Could not validate credentials"
+                    }
+                  }
                 }
               }
             }
@@ -312,8 +562,8 @@
         "tags": [
           "campaigns"
         ],
-        "summary": "Get Campaign",
-        "description": "Retrieve detailed information about a specific campaign",
+        "summary": "Get Campaign Details",
+        "description": "Retrieve comprehensive information about a specific campaign including configuration, statistics, and current status. Use this endpoint for detailed campaign analysis and monitoring.",
         "operationId": "get_campaign_v1alpha_campaign__campaign_id__get",
         "security": [
           {
@@ -321,6 +571,16 @@
           }
         ],
         "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          },
           {
             "name": "campaign_id",
             "in": "path",
@@ -330,20 +590,21 @@
               "format": "uuid",
               "example": "550e8400-e29b-41d4-a716-446655440000"
             },
-            "description": "Unique identifier of the campaign"
+            "description": "Unique identifier of the campaign. Obtain this from the campaign creation response or campaigns list endpoint."
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successful Response - Returns detailed campaign information",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CampaignDetailResponse"
                 },
                 "examples": {
-                  "successResponse": {
-                    "summary": "Campaign Details",
+                  "activeCampaign": {
+                    "summary": "Active Campaign Details",
+                    "description": "Example response for a currently running campaign",
                     "value": {
                       "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
                       "campaign_name": "Summer Promotion 2024",
@@ -352,21 +613,73 @@
                       "org_id": 12345,
                       "campaign_start_date": "2024-06-01T09:00:00Z",
                       "campaign_end_date": "2024-08-31T18:00:00Z",
+                      "created_at": "2024-05-25T14:30:00Z",
+                      "updated_at": "2024-06-15T16:45:00Z",
                       "campaign_data": {
                         "total_records": 150,
-                        "processed_records": 75
-                      },
-                      "campaign_config": {
-                        "preferred_timeslot": "WEEKDAY_AFTERNOON",
-                        "retry_options": { "max_attempts": 3 }
-                      },
-                      "campaign_report_summary": {
+                        "processed_records": 75,
                         "successful_calls": 45,
                         "failed_calls": 5,
                         "pending_calls": 25
                       },
+                      "campaign_config": {
+                        "preferred_timeslot": "WEEKDAY_AFTERNOON",
+                        "retry_options": { 
+                          "max_attempts": 3,
+                          "delay_minutes": 60
+                        },
+                        "campaign_name": "Summer Promotion 2024"
+                      },
+                      "campaign_report_summary": {
+                        "successful_calls": 45,
+                        "failed_calls": 5,
+                        "pending_calls": 25,
+                        "total_attempts": 75,
+                        "average_call_duration": 125,
+                        "completion_rate": 60.0
+                      },
                       "campaign_schema_version": "1.0.0",
                       "active": true
+                    }
+                  },
+                  "completedCampaign": {
+                    "summary": "Completed Campaign Details",
+                    "description": "Example response for a finished campaign",
+                    "value": {
+                      "campaign_id": "660e8400-e29b-41d4-a716-446655440001",
+                      "campaign_name": "Q1 Customer Survey",
+                      "campaign_state": "COMPLETED",
+                      "agent_id": "770e8400-e29b-41d4-a716-446655440000",
+                      "org_id": 12345,
+                      "campaign_start_date": "2024-01-01T09:00:00Z",
+                      "campaign_end_date": "2024-03-31T18:00:00Z",
+                      "created_at": "2023-12-20T10:00:00Z",
+                      "updated_at": "2024-04-01T09:15:00Z",
+                      "campaign_data": {
+                        "total_records": 200,
+                        "processed_records": 200,
+                        "successful_calls": 150,
+                        "failed_calls": 20,
+                        "pending_calls": 0
+                      },
+                      "campaign_config": {
+                        "preferred_timeslot": "WEEKDAY_AFTERNOON",
+                        "retry_options": { 
+                          "max_attempts": 2,
+                          "delay_minutes": 120
+                        },
+                        "campaign_name": "Q1 Customer Survey"
+                      },
+                      "campaign_report_summary": {
+                        "successful_calls": 150,
+                        "failed_calls": 20,
+                        "pending_calls": 0,
+                        "total_attempts": 340,
+                        "average_call_duration": 180,
+                        "completion_rate": 75.0
+                      },
+                      "campaign_schema_version": "1.0.0",
+                      "active": false
                     }
                   }
                 }
@@ -374,17 +687,25 @@
             }
           },
           "404": {
-            "description": "Campaign not found",
+            "description": "Campaign not found - The specified campaign_id does not exist or you don't have access to it",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "notFound": {
+                    "summary": "Campaign Not Found",
+                    "value": {
+                      "detail": "Campaign not found"
+                    }
+                  }
                 }
               }
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Validation Error - Invalid campaign_id format",
             "content": {
               "application/json": {
                 "schema": {
@@ -402,12 +723,22 @@
           "scheduled-calls"
         ],
         "summary": "Get Scheduled Calls",
-        "description": "Retrieve all scheduled calls for a specific campaign",
+        "description": "Retrieve all scheduled calls for a specific campaign with filtering and pagination. This endpoint provides visibility into individual call attempts, their status, and metadata.",
         "operationId": "get_scheduled_calls_v1alpha_campaign__campaign_id__items_get",
         "security": [
           { "bearerAuth": [] }
         ],
         "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          },
           {
             "name": "campaign_id",
             "in": "path",
@@ -417,7 +748,7 @@
               "format": "uuid",
               "example": "550e8400-e29b-41d4-a716-446655440000"
             },
-            "description": "Unique identifier of the campaign"
+            "description": "Unique identifier of the campaign. Must be an active campaign that you have access to."
           },
           {
             "name": "call_state",
@@ -425,9 +756,11 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"]
+              "enum": ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"],
+              "description": "Filter calls by their current execution state"
             },
-            "description": "Filter calls by state"
+            "description": "Filter calls by specific state. Useful for monitoring pending calls or analyzing completed attempts.",
+            "example": "COMPLETED"
           },
           {
             "name": "limit",
@@ -439,7 +772,8 @@
               "maximum": 100,
               "default": 50
             },
-            "description": "Number of calls to return"
+            "description": "Number of call records to return per page. Larger campaigns may require pagination.",
+            "example": 50
           },
           {
             "name": "offset",
@@ -450,12 +784,13 @@
               "minimum": 0,
               "default": 0
             },
-            "description": "Number of calls to skip"
+            "description": "Number of call records to skip for pagination.",
+            "example": 0
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successful Response - Returns paginated list of scheduled calls",
             "content": {
               "application/json": {
                 "schema": {
@@ -463,28 +798,94 @@
                   "properties": {
                     "scheduled_calls": {
                       "type": "array",
+                      "description": "Array of scheduled call objects with current status and metadata",
                       "items": {
                         "$ref": "#/components/schemas/ScheduledCallListItem"
                       }
                     },
                     "total": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Total number of scheduled calls matching the criteria"
                     },
                     "limit": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "The limit value used in the request"
                     },
                     "offset": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "The offset value used in the request"
                     }
                   },
                   "required": ["scheduled_calls", "total"],
                   "title": "ScheduledCallsResponse"
+                },
+                "examples": {
+                  "allCalls": {
+                    "summary": "All Scheduled Calls",
+                    "description": "Example showing mixed status calls from a campaign",
+                    "value": {
+                      "scheduled_calls": [
+                        {
+                          "scheduled_item_id": "aa0e8400-e29b-41d4-a716-446655440000",
+                          "call_state": "COMPLETED",
+                          "to_phone_number": "+1234567890",
+                          "scheduled_time": "2024-06-01T10:30:00Z",
+                          "attempt_count": 1,
+                          "completion_time": "2024-06-01T10:35:00Z",
+                          "call_duration": 285,
+                          "metadata": "{\"customer_name\": \"John Doe\"}"
+                        },
+                        {
+                          "scheduled_item_id": "bb0e8400-e29b-41d4-a716-446655440000",
+                          "call_state": "SCHEDULED",
+                          "to_phone_number": "+1987654321",
+                          "scheduled_time": "2024-06-02T14:00:00Z",
+                          "attempt_count": 0,
+                          "metadata": "{\"customer_name\": \"Maria Garcia\"}"
+                        }
+                      ],
+                      "total": 150,
+                      "limit": 50,
+                      "offset": 0
+                    }
+                  },
+                  "filteredCalls": {
+                    "summary": "Filtered by State",
+                    "description": "Example showing only failed calls for analysis",
+                    "value": {
+                      "scheduled_calls": [
+                        {
+                          "scheduled_item_id": "cc0e8400-e29b-41d4-a716-446655440000",
+                          "call_state": "FAILED",
+                          "to_phone_number": "+1122334455",
+                          "scheduled_time": "2024-06-01T11:15:00Z",
+                          "attempt_count": 3,
+                          "last_attempt_time": "2024-06-01T13:15:00Z",
+                          "failure_reason": "NO_ANSWER",
+                          "metadata": "{\"customer_name\": \"Robert Smith\"}"
+                        }
+                      ],
+                      "total": 5,
+                      "limit": 50,
+                      "offset": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found or no access to the specified campaign",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Validation Error - Invalid parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -501,13 +902,23 @@
         "tags": [
           "scheduled-calls"
         ],
-        "summary": "Get Scheduled Call",
-        "description": "Retrieve detailed information about a specific scheduled call",
+        "summary": "Get Scheduled Call Details",
+        "description": "Retrieve comprehensive information about a specific scheduled call including call logs, attempt history, and detailed results. Use this for detailed call analysis and troubleshooting.",
         "operationId": "get_scheduled_call_v1alpha_campaign__campaign_id__item__scheduled_item_id__get",
         "security": [
           { "bearerAuth": [] }
         ],
         "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^Token YOUR_SECRET_API_KEY"
+            },
+            "description": "Your secret API key from Vozzo platform formatted as Token YOUR_SECRET_API_KEY"
+          },
           {
             "name": "campaign_id",
             "in": "path",
@@ -517,7 +928,7 @@
               "format": "uuid",
               "example": "550e8400-e29b-41d4-a716-446655440000"
             },
-            "description": "Unique identifier of the campaign"
+            "description": "Unique identifier of the campaign containing the scheduled call"
           },
           {
             "name": "scheduled_item_id",
@@ -528,185 +939,109 @@
               "format": "uuid",
               "example": "770e8400-e29b-41d4-a716-446655440000"
             },
-            "description": "Unique identifier of the scheduled call"
+            "description": "Unique identifier of the specific scheduled call item"
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successful Response - Returns detailed call information",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ScheduledCallDetailResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1alpha/auth/api-keys": {
-      "post": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "Create Api Key",
-        "description": "Generate a new API key for programmatic access",
-        "operationId": "create_api_key_v1alpha_auth_api_keys_post",
-        "security": [
-          { "bearerAuth": [] }  
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateApiKeyRequest"
-              },
-              "examples": {
-                "standardKey": {
-                  "summary": "Standard API Key",
-                  "value": {
-                    "scopes": ["campaign:read", "campaign:write"],
-                    "expiry_date": "2024-12-31"
-                  }
-                },
-                "readOnlyKey": {
-                  "summary": "Read-only API Key",
-                  "value": {
-                    "scopes": ["campaign:read"],
-                    "expiry_date": "2024-06-30"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "API Key created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "api_key": {
-                      "type": "string",
-                      "description": "The generated API key"
-                    },
-                    "key_id": {
-                      "type": "string",
-                      "description": "Unique identifier for the API key"
-                    },
-                    "expiry_date": {
-                      "type": "string",
-                      "format": "date"
-                    },
-                    "scopes": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": ["api_key", "key_id", "scopes"],
-                  "title": "CreateApiKeyResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1alpha/auth/me": {
-      "get": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "Whoami",
-        "description": "Get current authenticated user information",
-        "operationId": "whoami_v1alpha_auth_me_get",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user_id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "organization_id": {
-                      "type": "integer"
-                    },
-                    "organization_name": {
-                      "type": "string"
-                    },
-                    "permissions": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": ["user_id", "email", "organization_id"],
-                  "title": "UserInfoResponse"
                 },
                 "examples": {
-                  "userInfo": {
-                    "summary": "User Information",
+                  "completedCall": {
+                    "summary": "Completed Call Details",
+                    "description": "Detailed information for a successfully completed call",
                     "value": {
-                      "user_id": "880e8400-e29b-41d4-a716-446655440000",
-                      "email": "user@example.com",
-                      "name": "John Doe",
-                      "organization_id": 12345,
-                      "organization_name": "Example Corp",
-                      "permissions": ["campaign:read", "campaign:write"],
-                      "created_at": "2024-01-01T00:00:00Z"
+                      "scheduled_item_id": "770e8400-e29b-41d4-a716-446655440000",
+                      "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "call_state": "COMPLETED",
+                      "to_phone_number": "+1234567890",
+                      "agent_language": "en",
+                      "metadata": {
+                        "customer_name": "John Doe",
+                        "segment": "premium",
+                        "product": "personal_loan"
+                      },
+                      "scheduled_time": "2024-06-01T10:30:00Z",
+                      "actual_call_time": "2024-06-01T10:31:15Z",
+                      "completion_time": "2024-06-01T10:35:00Z",
+                      "call_duration": 225,
+                      "attempt_count": 1,
+                      "call_recording_url": "https://storage.vozzo.ai/recordings/recording_12345.wav",
+                      "call_summary": "Customer confirmed receipt of information, asked about payment options",
+                      "agent_notes": "Customer was responsive and provided positive feedback",
+                      "call_metrics": {
+                        "speech_duration": 185,
+                        "silence_duration": 40,
+                        "interaction_count": 12
+                      },
+                      "created_at": "2024-05-30T14:20:00Z",
+                      "updated_at": "2024-06-01T10:35:00Z"
+                    }
+                  },
+                  "failedCall": {
+                    "summary": "Failed Call Details",
+                    "description": "Detailed information for a call that failed after multiple attempts",
+                    "value": {
+                      "scheduled_item_id": "880e8400-e29b-41d4-a716-446655440000",
+                      "campaign_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "call_state": "FAILED",
+                      "to_phone_number": "+1987654321",
+                      "agent_language": "es",
+                      "metadata": {
+                        "customer_name": "Maria Garcia",
+                        "segment": "standard"
+                      },
+                      "scheduled_time": "2024-06-01T11:00:00Z",
+                      "attempt_count": 3,
+                      "attempt_history": [
+                        {
+                          "attempt_number": 1,
+                          "attempt_time": "2024-06-01T11:00:00Z",
+                          "result": "NO_ANSWER",
+                          "duration": 30
+                        },
+                        {
+                          "attempt_number": 2,
+                          "attempt_time": "2024-06-01T12:00:00Z",
+                          "result": "BUSY",
+                          "duration": 15
+                        },
+                        {
+                          "attempt_number": 3,
+                          "attempt_time": "2024-06-01T13:00:00Z",
+                          "result": "NO_ANSWER",
+                          "duration": 30
+                        }
+                      ],
+                      "failure_reason": "MAX_ATTEMPTS_EXCEEDED",
+                      "created_at": "2024-05-30T14:25:00Z",
+                      "updated_at": "2024-06-01T13:00:30Z"
                     }
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scheduled call not found - The specified item does not exist in the campaign",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error - Invalid UUID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -715,123 +1050,473 @@
       }
     }
   },
- "components": {
-  "securitySchemes": {
-    "bearerAuth": {
-      "type": "http",
-      "scheme": "bearer",
-      "bearerFormat": "JWT"
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained through authentication. Include in Authorization header as: Bearer <token>"
+      }
+    },
+    "schemas": {
+      "CreateCampaignRequest": {
+        "type": "object",
+        "description": "Request payload for creating a new campaign",
+        "properties": {
+          "agent_uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier of the AI agent that will handle the calls. This agent must be created and configured in the Vozzo platform before creating a campaign.",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "campaign_config": {
+            "type": "object",
+            "description": "Configuration settings that define the campaign behavior, timing, and execution rules",
+            "properties": {
+              "campaign_name": {
+                "type": "string",
+                "description": "Human-readable name for the campaign. Used for identification and reporting purposes.",
+                "example": "Summer Promotion 2024"
+              },
+              "preferred_timeslot": {
+                "type": "string",
+                "description": "Defines when calls should be scheduled based on recipient timezone. Respects local time zones and calling regulations.",
+                "enum": ["ANYDAY", "WEEKDAY_MORNING", "WEEKDAY_AFTERNOON", "WEEKDAY_EVENING", "WEEKEND_DAY"],
+                "example": "WEEKDAY_AFTERNOON"
+              },
+              "retry_options": {
+                "type": "object",
+                "description": "Configuration for automatic retry behavior when calls fail or are not answered",
+                "properties": {
+                  "max_attempts": {
+                    "type": "integer",
+                    "description": "Maximum number of retry attempts (1-5)",
+                    "minimum": 1,
+                    "maximum": 5,
+                    "example": 3
+                  },
+                  "delay_minutes": {
+                    "type": "integer",
+                    "description": "Wait time in minutes between retry attempts (15-1440 minutes)",
+                    "minimum": 15,
+                    "maximum": 1440,
+                    "example": 60
+                  }
+                }
+              },
+              "campaign_start_date": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the campaign should begin processing calls. If not specified, starts immediately.",
+                "example": "2024-06-01T09:00:00Z"
+              },
+              "campaign_end_date": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the campaign should stop scheduling new calls. Calls in progress will complete.",
+                "example": "2024-08-31T18:00:00Z"
+              }
+            },
+            "required": ["campaign_name", "preferred_timeslot"]
+          },
+          "campaign_data": {
+            "type": "array",
+            "description": "List of recipients and call-specific parameters for the campaign",
+            "items": {
+              "type": "object",
+              "properties": {
+                "to_phone_number": {
+                  "type": "string",
+                  "description": "Recipient's phone number in E.164 format. Must include country code and be capable of receiving voice calls.",
+                  "example": "+1234567890"
+                },
+                "agent_language": {
+                  "type": "string",
+                  "description": "Language code for the AI agent to use during the call. Must match languages supported by the selected agent.",
+                  "example": "en"
+                },
+                "metadata": {
+                  "type": "string",
+                  "description": "JSON-encoded object containing context and variables for personalized calls. Common fields include customer_name, segment, and custom business data.",
+                  "example": "{\"customer_name\": \"John Doe\", \"segment\": \"premium\", \"account_id\": \"12345\"}"
+                }
+              },
+              "required": ["to_phone_number", "agent_language", "metadata"]
+            }
+          }
+        },
+        "required": ["agent_uuid", "campaign_config", "campaign_data"]
+      },
+      "CreateCampaignResponse": {
+        "type": "object",
+        "description": "Response after successfully creating a campaign",
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier assigned to the newly created campaign",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "records": {
+            "type": "integer",
+            "description": "Number of call records successfully processed and scheduled",
+            "example": 150
+          },
+          "org_id": {
+            "type": "integer",
+            "description": "Organization identifier associated with the campaign",
+            "example": 12345
+          }
+        },
+        "required": ["campaign_id"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard error response format",
+        "properties": {
+          "detail": { 
+            "type": "string",
+            "description": "Human-readable error message describing the issue"
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code for programmatic handling",
+            "example": "CAMPAIGN_NOT_FOUND"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Unique identifier for the request for support purposes",
+            "example": "req_12345"
+          }
+        },
+        "required": ["detail"]
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "description": "Validation error response for invalid request parameters",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": { 
+              "type": "object",
+              "properties": {
+                "loc": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Location of the validation error in the request"
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Validation error message"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Type of validation error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CampaignState": {
+        "type": "string",
+        "enum": ["DRAFT", "RUNNING", "PAUSED", "COMPLETED", "CANCELLED"],
+        "description": "Possible states of a campaign throughout its lifecycle"
+      },
+      "CampaignListItem": {
+        "type": "object",
+        "description": "Basic campaign information for list views",
+        "properties": {
+          "campaign_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "Unique identifier of the campaign"
+          },
+          "campaign_name": { 
+            "type": "string",
+            "description": "Human-readable name of the campaign"
+          },
+          "campaign_state": { 
+            "$ref": "#/components/schemas/CampaignState",
+            "description": "Current state of the campaign"
+          },
+          "agent_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "ID of the AI agent handling this campaign"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the campaign was created"
+          },
+          "total_records": {
+            "type": "integer",
+            "description": "Total number of call records in the campaign"
+          },
+          "processed_records": {
+            "type": "integer",
+            "description": "Number of call records that have been processed"
+          }
+        }
+      },
+      "CampaignDetailResponse": {
+        "type": "object",
+        "description": "Comprehensive campaign information including configuration and statistics",
+        "properties": {
+          "campaign_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "Unique identifier of the campaign"
+          },
+          "campaign_name": { 
+            "type": "string",
+            "description": "Human-readable name of the campaign"
+          },
+          "campaign_state": { 
+            "$ref": "#/components/schemas/CampaignState",
+            "description": "Current state of the campaign"
+          },
+          "agent_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "ID of the AI agent handling this campaign"
+          },
+          "org_id": {
+            "type": "integer",
+            "description": "Organization ID that owns the campaign"
+          },
+          "campaign_start_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Scheduled start time of the campaign"
+          },
+          "campaign_end_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Scheduled end time of the campaign"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the campaign was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the campaign was last updated"
+          },
+          "campaign_data": {
+            "type": "object",
+            "description": "Campaign statistics and progress information",
+            "properties": {
+              "total_records": { "type": "integer" },
+              "processed_records": { "type": "integer" },
+              "successful_calls": { "type": "integer" },
+              "failed_calls": { "type": "integer" },
+              "pending_calls": { "type": "integer" }
+            }
+          },
+          "campaign_config": {
+            "type": "object",
+            "description": "Original campaign configuration settings"
+          },
+          "campaign_report_summary": {
+            "type": "object",
+            "description": "Analytics and performance metrics for the campaign"
+          },
+          "campaign_schema_version": {
+            "type": "string",
+            "description": "Version of the campaign schema used"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the campaign is currently active"
+          }
+        }
+      },
+      "ScheduledCallListItem": {
+        "type": "object",
+        "description": "Basic information for a scheduled call in list views",
+        "properties": {
+          "scheduled_item_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "Unique identifier of the scheduled call"
+          },
+          "call_state": { 
+            "type": "string",
+            "enum": ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"],
+            "description": "Current state of the call"
+          },
+          "to_phone_number": {
+            "type": "string",
+            "description": "Recipient's phone number"
+          },
+          "scheduled_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Originally scheduled time for the call"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "description": "Number of attempt made for this call"
+          },
+          "completion_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the call was completed (if applicable)"
+          },
+          "call_duration": {
+            "type": "integer",
+            "description": "Duration of the call in seconds (if completed)"
+          },
+          "metadata": {
+            "type": "string",
+            "description": "Call-specific metadata as JSON string"
+          }
+        }
+      },
+      "ScheduledCallDetailResponse": {
+        "type": "object",
+        "description": "Comprehensive information about a specific scheduled call",
+        "properties": {
+          "scheduled_item_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "Unique identifier of the scheduled call"
+          },
+          "campaign_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "ID of the campaign containing this call"
+          },
+          "call_state": { 
+            "type": "string",
+            "description": "Current state of the call"
+          },
+          "to_phone_number": {
+            "type": "string",
+            "description": "Recipient's phone number in E.164 format"
+          },
+          "agent_language": {
+            "type": "string",
+            "description": "Language used for the call"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Call-specific metadata as parsed JSON object"
+          },
+          "scheduled_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Originally scheduled time for the call"
+          },
+          "actual_call_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Actual time when the call was attempted"
+          },
+          "completion_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the call was completed"
+          },
+          "call_duration": {
+            "type": "integer",
+            "description": "Duration of the call in seconds"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "description": "Number of attempts made"
+          },
+          "call_recording_url": {
+            "type": "string",
+            "description": "URL to access the call recording (if available)"
+          },
+          "call_summary": {
+            "type": "string",
+            "description": "AI-generated summary of the call conversation"
+          },
+          "agent_notes": {
+            "type": "string",
+            "description": "Notes or observations from the AI agent"
+          },
+          "call_metrics": {
+            "type": "object",
+            "description": "Detailed call performance metrics"
+          },
+          "attempt_history": {
+            "type": "array",
+            "description": "History of all attempt made for this call",
+            "items": {
+              "type": "object"
+            }
+          },
+          "failure_reason": {
+            "type": "string",
+            "description": "Reason for call failure (if applicable)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the call was scheduled"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the call record was last updated"
+          }
+        }
+      },
+      "CreateApiKeyRequest": {
+        "type": "object",
+        "description": "Request payload for creating a new API key",
+        "properties": {
+          "scopes": {
+            "type": "array",
+            "items": { 
+              "type": "string",
+              "enum": ["campaign:read", "campaign:write", "billing:read", "analytics:read"]
+            },
+            "description": "Permission scopes to grant to the API key"
+          },
+          "expiry_date": { 
+            "type": "string", 
+            "format": "date",
+            "description": "Optional expiration date for the API key (YYYY-MM-DD format)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the API key's purpose"
+          }
+        },
+        "required": ["scopes"]
+      }
     }
   },
-  "schemas": {
-    "CreateCampaignRequest": {
-      "type": "object",
-      "properties": {
-        "agent_uuid": { "type": "string", "format": "uuid" },
-        "campaign_config": { "type": "object" },
-        "campaign_data": {
-          "type": "array",
-          "items": { "type": "object" }
-        }
-      },
-      "required": ["agent_uuid", "campaign_config", "campaign_data"]
-    },
-    "CreateCampaignResponse": {
-      "type": "object",
-      "properties": {
-        "campaign_id": { "type": "string", "format": "uuid" },
-        "records": { "type": "integer" },
-        "org_id": { "type": "integer" }
-      },
-      "required": ["campaign_id"]
-    },
-    "ErrorResponse": {
-      "type": "object",
-      "properties": {
-        "detail": { "type": "string" }
-      },
-      "required": ["detail"]
-    },
-    "HTTPValidationError": {
-      "type": "object",
-      "properties": {
-        "detail": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    },
-    "CampaignState": {
-      "type": "string",
-      "enum": ["DRAFT", "RUNNING", "PAUSED", "COMPLETED"]
-    },
-    "CampaignListItem": {
-      "type": "object",
-      "properties": {
-        "campaign_id": { "type": "string", "format": "uuid" },
-        "campaign_name": { "type": "string" },
-        "campaign_state": { "$ref": "#/components/schemas/CampaignState" },
-        "agent_id": { "type": "string", "format": "uuid" }
-      }
-    },
-    "CampaignDetailResponse": {
-      "type": "object",
-      "properties": {
-        "campaign_id": { "type": "string", "format": "uuid" },
-        "campaign_name": { "type": "string" },
-        "campaign_state": { "$ref": "#/components/schemas/CampaignState" }
-      }
-    },
-    "ScheduledCallListItem": {
-      "type": "object",
-      "properties": {
-        "scheduled_item_id": { "type": "string", "format": "uuid" },
-        "call_state": { "type": "string" }
-      }
-    },
-    "ScheduledCallDetailResponse": {
-      "type": "object",
-      "properties": {
-        "scheduled_item_id": { "type": "string", "format": "uuid" },
-        "call_state": { "type": "string" },
-        "created_at": { "type": "string", "format": "date-time" }
-      }
-    },
-    "CreateApiKeyRequest": {
-      "type": "object",
-      "properties": {
-        "scopes": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "expiry_date": { "type": "string", "format": "date" }
-      },
-      "required": ["scopes"]
-    }
-  }
-}
-,
   "security": [
     {
       "bearerAuth": []
     }
   ],
   "tags": [
-    {
-      "name": "health",
-      "description": "Health check endpoints"
-    },
-    {
-      "name": "campaigns",
-      "description": "Campaign management endpoints"
-    },
-    {
-      "name": "scheduled-calls",
-      "description": "Scheduled call management endpoints"
-    },
-    {
-      "name": "authentication",
-      "description": "Authentication and authorization endpoints"
-    }
-  ]
+  {
+    "name": "health",
+    "description": "# Health Check API\n\n## Overview\nThe Health Check API provides endpoints to monitor the status and availability of the Vozzo Campaign API services. Use these endpoints to verify service health, check API version information, and monitor system status.\n\n## Key Features\n- **Service Monitoring**: Verify API service availability and operational status\n- **Version Information**: Retrieve current API version and build information\n- **Uptime Monitoring**: Track service health for integration monitoring\n- **Status Checks**: Quick verification of authentication and service connectivity\n\n## Use Cases\n- **Integration Health Checks**: Verify API availability before making campaign requests\n- **Monitoring Systems**: Integrate with monitoring tools for service status tracking\n- **Troubleshooting**: Quick diagnostic checks during integration issues\n- **Version Compatibility**: Verify API version for compatibility checks"
+  },
+  {
+    "name": "campaigns",
+    "description": "# Campaign Management API\n\n## Overview\nThe Campaign Management API enables you to create, manage, and monitor automated voice call campaigns using Vozzo's AI agents. Campaigns allow you to schedule personalized voice calls to multiple recipients with flexible scheduling and retry options.\n\n## Key Features\n- **Campaign Creation**: Create campaigns with personalized messaging and metadata\n- **Flexible Scheduling**: Schedule calls based on preferred time slots and recipient timezones\n- **Retry Mechanisms**: Configure automatic retry logic for failed call attempts\n- **Progress Monitoring**: Track campaign status, completion rates, and performance metrics\n- **Bulk Operations**: Support for campaigns with thousands of recipients\n\n## Campaign Lifecycle\n1. **DRAFT**: Campaign created but not yet active\n2. **RUNNING**: Campaign actively processing calls\n3. **PAUSED**: Campaign temporarily suspended\n4. **COMPLETED**: All calls processed successfully\n5. **CANCELLED**: Campaign terminated before completion\n\n## Use Cases\n- **Customer Outreach**: Automated follow-ups, surveys, and notifications\n- **Marketing Campaigns**: Product promotions and event announcements\n- **Appointment Reminders**: Healthcare, service, and business reminders\n- **Emergency Notifications**: Critical information dissemination\n- **Customer Support**: Proactive support and feedback collection"
+  },
+  {
+    "name": "scheduled-calls",
+    "description": "# Scheduled Calls API\n\n## Overview\nThe Scheduled Calls API provides detailed visibility into individual call attempts within your campaigns. Monitor call status, access recordings, analyze performance metrics, and troubleshoot call issues with comprehensive call-level data.\n\n## Key Features\n- **Call Status Tracking**: Real-time monitoring of individual call attempts\n- **Detailed Analytics**: Access call duration, success rates, and performance metrics\n- **Call Recordings**: Retrieve audio recordings of completed calls\n- **Attempt History**: View complete history of retry attempts and outcomes\n- **Failure Analysis**: Detailed failure reasons and troubleshooting information\n- **Pagination Support**: Efficient handling of large call datasets\n\n## Call States\n- **SCHEDULED**: Call is queued for future execution\n- **IN_PROGRESS**: Call is currently being attempted\n- **COMPLETED**: Call successfully connected and completed\n- **FAILED**: Call failed after all retry attempts\n- **CANCELLED**: Call was manually cancelled\n\n## Use Cases\n- **Real-time Monitoring**: Track call progress during campaign execution\n- **Quality Assurance**: Review call recordings for quality and compliance\n- **Performance Analysis**: Identify patterns in call success/failure rates\n- **Troubleshooting**: Investigate specific call failures and issues\n- **Reporting**: Generate detailed call analytics and performance reports"
+  },
+  {
+    "name": "authentication",
+    "description": "# Authentication & Security API\n\n## Overview\nThe Authentication API provides secure access control and identity management for the Vozzo Campaign API. Manage API keys, verify user credentials, and control access permissions for secure integration with Vozzo services.\n\n## Key Features\n- **API Key Management**: Create, manage, and revoke API keys for programmatic access\n- **User Identity Verification**: Retrieve authenticated user and organization information\n- **Scope-based Permissions**: Fine-grained access control with permission scopes\n- **Secure Token Management**: JWT-based authentication with proper expiration\n- **Organization Context**: Multi-tenant support with organization isolation\n\n## Security Model\n- **Bearer Token Authentication**: JWT tokens for API access\n- **Permission Scopes**: Granular access control (read/write permissions)\n- **API Key Expiration**: Time-limited credentials for enhanced security\n- **Organization Isolation**: Data separation between different organizations\n\n## Available Scopes\n- `campaign:read` - Read access to campaigns and call data\n- `campaign:write` - Write access to create and manage campaigns\n- `billing:read` - Access to billing and usage information\n- `analytics:read` - Access to advanced analytics and reporting\n\n## Use Cases\n- **Integration Security**: Secure API access for automated systems\n- **Multi-user Access**: Team collaboration with different permission levels\n- **Service Accounts**: Programmatic access for integrations and dashboards\n- **Access Auditing**: Track and monitor API usage and permissions\n- **Security Compliance**: Meet security standards with proper access controls"
+  }
+]
 }
