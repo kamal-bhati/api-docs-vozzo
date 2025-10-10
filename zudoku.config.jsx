@@ -7,6 +7,7 @@ const config = {
       width: "130px",
     },
   },
+
   navigation: [
     {
       type: "category",
@@ -19,16 +20,24 @@ const config = {
           items: [
             "/introduction",
             "/getting_start",
-            {
-              type: "link",
-              icon: "folder-cog",
-              badge: {
-                label: "New",
-                color: "purple",
-              },
-              label: "API Reference",
-              to: "/api",
-            },
+          ],
+        },
+         {
+          type: "category",
+          label: "Authentication",
+          icon: "key",
+          items: [
+            "/openidAuth",
+          ],
+        },
+        {
+          type: "category",
+          label: "Campaign Management",
+          icon: "code",
+          items: [
+            "/createCamp",
+            "/getCampaign",
+            "/getCall"
           ],
         },
         // {
@@ -52,25 +61,22 @@ const config = {
       to: "/api",
       label: "API Reference",
     },
+    {
+      type: "link",
+      to: "https://platform.dev.vozzo.ai/my-agents",
+      label: "Get API Key",
+      icon: "key",
+    },
   ],
-  redirects: [{ from: "/", to: "/introduction" }],
+  redirects: [{ from: "/", to: "/introduction" }, {from : "/api/authentication", to : "https://platform.dev.vozzo.ai/my-agents"}],
+  
   apis: [
     {
       type: "file",
       input: "./apis/openapi.json",
       path: "/api",
     },
-  ],
-  authentication: {
-  type: "openid",
-  issuer: "https://auth.vozzo.ai/realms/vozzo-dev",
-  clientId: "cc57a815-f859-fefc-66a7-d97280cd799e",
-  scopes: ["openid", "profile", "email"],
-},
-
-  protectedRoutes: [
-   "/api/*", 
-   "/v1alpha/*",  
+    
   ],
 };
 
